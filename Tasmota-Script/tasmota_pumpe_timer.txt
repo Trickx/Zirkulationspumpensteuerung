@@ -1,0 +1,143 @@
+>D
+IP=192.168.0.129
+
+; Pumpenlaufzeiten
+; Pumpe läuft für 6 Minuten
+plaufzeit=360
+;plaufzeit=10
+; Pause zwischen Pumpenläufen 30 Minuten
+pauszeit=1800
+;pauszeit=60
+; Zyklisches Intervall
+; 1x am Tag soll Pumpe laufen wegen thermischer Desinfektion
+pday=86400
+;pday=25
+
+; Ändere keine Werte nach dieser Zeile!
+
+;s1="Default"
+temperatur=100
+; define temp array with 5 entries
+m:temps=0 5
+
+; Hilfsvariable
+tcnt=1
+tdelta=0
+ialt=0
+ijetzt=0
+sollwert=0
+;power=0
+
+; Lebenszeichen
+toggle=0
+
+; Timer
+t:tpday=-1
+t:tpon=-1
+t:tpblocked=0
+
+>BS
+; Hohe Temperaturwerte verhindern fehlerhafte Detektion einer Wasserentnahme nach einem Reset. 
+temps={100 100 100 100 100}
+; Starte Timer für Lauf 1x am Tag.
+tpday=pday
+; Deaktiviere Pumpe nach Reset.
+=>power2 OFF
+
+; Lese Temperatur
+>T
+;s1=DS18B20#Id
+temperatur=DS18B20#Temperature
+;print ID:%s1%: Temp: %temperatur%
+
+;>E
+;print Event received!
+;power=pwr[2]
+;print power:%power%
+; check if switch changed state
+;if chg[power]>0
+;then print ######change detected!#######
+;endif
+
+>S
+; Indizes aktualisieren
+ijetzt=tcnt+1
+ialt=ijetzt+1
+if ialt>=6
+then
+  ialt=1
+endif
+
+; aktuelle Temperatur speichern
+temps[ijetzt]=temperatur
+
+; Counter aktualisieren
+tcnt+=1
+tcnt%=5
+
+; Berechne Delta
+;print Aktuell: temps[%ijetzt%]:%temps[ijetzt]%
+;print Alt:     temps[%ialt%]:%temps[ialt]%
+tdelta=temps[ijetzt]-temps[ialt]
+;print Delta:   %tdelta%
+print Temperatur akt:%temps[ijetzt]% alt:%temps[ialt]% delta:%tdelta%
+
+; Prüfe delta und schalte Pumpe ggf. an.
+if(tdelta>=0.12)
+then
+  print Achtung! Wasserentnahme erkannt.
+  sollwert=1
+  =#pumpe(sollwert)
+else
+  print Keine Wasserentnahme erkannt.
+  sollwert=0
+  =#pumpe(sollwert)
+endif
+
+;1x am Tag soll Pumpe laufen wegen thermischer Desinfektion
+if tpday>0
+then
+	print Zyklischer Pumpenlauf in %0tpday%s (Intervall:%0pday%s).
+endif
+
+if tpday==0
+then
+	print Starte zyklischen Pumpenlauf 1x am Tag.
+	sollwert=1
+	=#pumpe(sollwert)	
+endif
+
+; Toggle interne LED als Lebenszeichen
+->power1 %toggle%
+toggle^=1
+
+#pumpe(sollwert)
+;print Subfunction(pumpe)
+;print pumpe tpday:%0tpday% | tpon:%0tpon% | tpblocked:%0tpblocked%
+if pwr[2]==1
+then
+  print Pumpe läuft noch %0tpon%s von %0plaufzeit%s.
+else
+if tpblocked>0
+then
+  print Pumpe noch %0tpblocked%s von %0pauszeit%s blockiert.
+endif
+endif
+
+if sollwert==1
+and pwr[2]==0
+and tpblocked==0
+then
+	print Schalte Pumpe an!
+	tpon=plaufzeit
+	=>power2 ON
+	tpday=-1
+endif
+if pwr[2]==1
+and tpon==0
+then
+	print Schalte Pumpe aus!
+	=>power2 OFF
+	tpday=pday
+	tpblocked=pauszeit
+endif
