@@ -22,7 +22,7 @@ Sie enthält folgende Änderungen
 
 ## Scripting ist nicht vorkompilierten Tasmota-Binaries enthalten.
 Das Default-Tasmota Projekt muss unter Zuhilfenahme einiger zusätzlicher Defines gebaut werden.
-* ![Anleitung](https://tasmota.github.io/docs/Scripting-Language/)
+* [Anleitung](https://tasmota.github.io/docs/Scripting-Language/)
 <img src="https://github.com/Trickx/Zirkulationspumpensteuerung/blob/main/Tasmota-Screenshots/user_config_override.h.png" width="500">
 
 
